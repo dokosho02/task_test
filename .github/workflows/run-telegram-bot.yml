@@ -1,0 +1,23 @@
+name: Run Telegram Bot
+
+on:
+  schedule:
+    - cron: "0 * * * *" # 每小时运行一次（UTC 时间）
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Make executable
+        run: chmod +x telegram_bot # 确保可执行文件有执行权限
+
+      - name: Run Telegram bot
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: ./telegram_bot
