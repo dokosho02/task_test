@@ -2,7 +2,9 @@ name: Run Telegram Bot
 
 on:
   schedule:
-    - cron: "0 * * * *" # 每小时运行一次（UTC 时间）
+    # - cron: "0 * * * *" # 每小时运行一次（UTC 时间）
+    - cron: "0 0 * * *" # 每天 UTC 0 时 0 分运行
+
   workflow_dispatch: # 允许手动触发
 
 jobs:
@@ -15,6 +17,9 @@ jobs:
 
       - name: Make executable
         run: chmod +x telegram_bot # 确保可执行文件有执行权限
+
+      - name: Delay for 20 seconds
+        run: sleep 20
 
       - name: Run Telegram bot
         env:
