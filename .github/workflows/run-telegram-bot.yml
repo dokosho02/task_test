@@ -18,8 +18,8 @@ jobs:
       - name: Make executable
         run: chmod +x telegram_bot # 确保可执行文件有执行权限
 
-      - name: Delay for 20 seconds
-        run: sleep 20
+      - name: Delay for 10 seconds
+        run: sleep 10
 
       - name: Run Telegram bot
         env:
