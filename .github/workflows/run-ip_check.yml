@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Make ip_check executable
-        run: chmod +x ip_check/ip_check/ip_check
+        run: chmod +x ip_check/ip_checker
 
       - name: Run IP Check
-        run: ip_check/ip_check/ip_check
+        run: ip_check/ip_check/ip_checker
