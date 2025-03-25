@@ -1,0 +1,48 @@
+name: Artifact Demo
+
+on:
+  workflow_dispatch:
+
+jobs:
+  artifact-job:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. 检出代码
+      - uses: actions/checkout@v4
+      
+      # 2. 尝试下载之前上传的 Artifact（首次运行会失败，但被允许）
+      - name: Download previous artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: my-data
+          path: data/
+        continue-on-error: true  # 允许首次运行失败
+      
+      # 3. 检查/初始化数据文件
+      - name: Prepare data file
+        run: |
+          if [ ! -f "data/record.json" ]; then
+            echo "初始化数据文件"
+            mkdir -p data
+            echo '{"count": 0}' > data/record.json
+          else
+            echo "使用现有数据文件:"
+            cat data/record.json
+          fi
+      
+      # 4. 修改数据（示例：计数器+1）
+      - name: Update data
+        run: |
+          count=$(jq '.count' data/record.json)
+          new_count=$((count + 1))
+          echo "更新计数: $count → $new_count"
+          jq ".count = $new_count" data/record.json > tmp.json && mv tmp.json data/record.json
+      
+      # 5. 上传新数据
+      - name: Upload updated artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: my-data
+          path: data/record.json
+          retention-days: 3
