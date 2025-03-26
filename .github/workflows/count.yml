@@ -63,6 +63,8 @@ jobs:
       
       # 8. 最终验证
       - name: Final check
+        env:
+          GH_TOKEN: ${{ github.token }}  # Authenticates gh with workflow permissions
         run: |
           echo "=== 最终文件状态 ==="
           ls -la data/
