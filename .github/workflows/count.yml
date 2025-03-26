@@ -14,31 +14,29 @@ jobs:
       # 2. 准备目录
       - name: Prepare directory
         run: mkdir -p data
-      
+        
       - name: Check artifact existence
         id: check-artifact
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # 调用 GitHub API 获取所有 Artifacts
-          artifact=$(gh api repos/${{ github.repository }}/actions/artifacts --jq '.artifacts[] | select(.name == "my-data")')
-          
-          # 判断是否存在并输出结果
+          artifact=$(gh api repos/${{ github.repository }}/actions/artifacts --paginate --jq '[.artifacts[] | select(.name == "my-data" and .expired == false)][0]')
           if [ -n "$artifact" ]; then
-            echo "✅ Artifact 'my-data' exists."
             echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✅ Artifact 'my-data' exists."
           else
-            echo "❌ Artifact 'my-data' does not exist."
             echo "exists=false" >> $GITHUB_OUTPUT
+            echo "❌ Artifact 'my-data' does not exist."
           fi
-      
-      # 4. 下载Artifact（仅在存在时执行）
+
       - name: Download artifact
         if: steps.check-artifact.outputs.exists == 'true'
         uses: actions/download-artifact@v4
         with:
           name: my-data
           path: data/
+          workflow: ${{ github.workflow }}  # 限定当前工作流
+
       
       # 5. 初始化或验证数据
       - name: Verify data
