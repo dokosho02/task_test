@@ -8,39 +8,43 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      # 1. 检出代码（必须步骤）
+      # 1. 检出代码
       - uses: actions/checkout@v4
       
-      # 2. 初始化目录（确保目录存在）
+      # 2. 准备目录
       - name: Prepare directory
         run: mkdir -p data
       
-      # 3. 调试：显示当前目录结构
-      - name: Debug before download
+      # 3. 检查Artifact是否存在
+      - name: Check artifact existence
+        id: check-artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          echo "=== 下载前目录结构 ==="
-          tree -a
+          artifact=$(gh api repos/${{ github.repository }}/actions/artifacts --jq '.artifacts[] | select(.name == "my-data")')
+          if [ -n "$artifact" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
       
-      # 4. 下载Artifact（关键修改）
+      # 4. 下载Artifact（仅在存在时执行）
       - name: Download artifact
-        id: download
+        if: steps.check-artifact.outputs.exists == 'true'
         uses: actions/download-artifact@v4
         with:
           name: my-data
           path: data/
-          merge-multiple: false
-        continue-on-error: true
       
-      # 5. 验证下载结果
-      - name: Verify download
+      # 5. 初始化或验证数据
+      - name: Verify data
         run: |
-          echo "=== 下载后文件状态 ==="
-          ls -la data/
           if [ -f "data/record.json" ]; then
             echo "✅ 成功加载Artifact"
-            echo "内容: $(cat data/record.json)"
+            echo "当前内容: $(cat data/record.json)"
           else
             echo "🆕 初始化新文件"
+            mkdir -p data
             echo '{"count": 0}' > data/record.json
           fi
       
@@ -52,21 +56,17 @@ jobs:
           echo "更新计数: $count → $new_count"
           jq ".count = $new_count" data/record.json > tmp.json && mv tmp.json data/record.json
       
-      # 7. 上传Artifact（关键修改）
+      # 7. 上传Artifact
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: my-data
           path: data/record.json
-          retention-days: 7  # 延长保留时间
-          overwrite: true    # 强制覆盖
+          retention-days: 7
+          overwrite: true
       
       # 8. 最终验证
       - name: Final check
-        env:
-          GH_TOKEN: ${{ github.token }}  # Authenticates gh with workflow permissions
         run: |
-          echo "=== 最终文件状态 ==="
-          ls -la data/
-          echo "=== 当前Artifact列表 ==="
-          gh api repos/${{ github.repository }}/actions/artifacts | jq '.artifacts[] | {name, size}'
+          echo "=== 最终文件内容 ==="
+          cat data/record.json
