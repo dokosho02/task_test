@@ -15,16 +15,20 @@ jobs:
       - name: Prepare directory
         run: mkdir -p data
       
-      # 3. 检查Artifact是否存在
       - name: Check artifact existence
         id: check-artifact
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # 调用 GitHub API 获取所有 Artifacts
           artifact=$(gh api repos/${{ github.repository }}/actions/artifacts --jq '.artifacts[] | select(.name == "my-data")')
+          
+          # 判断是否存在并输出结果
           if [ -n "$artifact" ]; then
+            echo "✅ Artifact 'my-data' exists."
             echo "exists=true" >> $GITHUB_OUTPUT
           else
+            echo "❌ Artifact 'my-data' does not exist."
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
       
