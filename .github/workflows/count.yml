@@ -8,30 +8,43 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      # 1. 检出代码
+      # 1. 检出代码（必须步骤）
       - uses: actions/checkout@v4
       
-      # 2. 尝试下载之前上传的 Artifact（首次运行会失败，但被允许）
-      - name: Download previous artifact
+      # 2. 初始化目录（确保目录存在）
+      - name: Prepare directory
+        run: mkdir -p data
+      
+      # 3. 调试：显示当前目录结构
+      - name: Debug before download
+        run: |
+          echo "=== 下载前目录结构 ==="
+          tree -a
+      
+      # 4. 下载Artifact（关键修改）
+      - name: Download artifact
+        id: download
         uses: actions/download-artifact@v4
         with:
           name: my-data
           path: data/
-        continue-on-error: true  # 允许首次运行失败
+          merge-multiple: false
+        continue-on-error: true
       
-      # 3. 检查/初始化数据文件
-      - name: Prepare data file
+      # 5. 验证下载结果
+      - name: Verify download
         run: |
-          if [ ! -f "data/record.json" ]; then
-            echo "初始化数据文件"
-            mkdir -p data
-            echo '{"count": 0}' > data/record.json
+          echo "=== 下载后文件状态 ==="
+          ls -la data/
+          if [ -f "data/record.json" ]; then
+            echo "✅ 成功加载Artifact"
+            echo "内容: $(cat data/record.json)"
           else
-            echo "使用现有数据文件:"
-            cat data/record.json
+            echo "🆕 初始化新文件"
+            echo '{"count": 0}' > data/record.json
           fi
       
-      # 4. 修改数据（示例：计数器+1）
+      # 6. 更新数据
       - name: Update data
         run: |
           count=$(jq '.count' data/record.json)
@@ -39,10 +52,19 @@ jobs:
           echo "更新计数: $count → $new_count"
           jq ".count = $new_count" data/record.json > tmp.json && mv tmp.json data/record.json
       
-      # 5. 上传新数据
-      - name: Upload updated artifact
+      # 7. 上传Artifact（关键修改）
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: my-data
           path: data/record.json
-          retention-days: 3
+          retention-days: 7  # 延长保留时间
+          overwrite: true    # 强制覆盖
+      
+      # 8. 最终验证
+      - name: Final check
+        run: |
+          echo "=== 最终文件状态 ==="
+          ls -la data/
+          echo "=== 当前Artifact列表 ==="
+          gh api repos/${{ github.repository }}/actions/artifacts | jq '.artifacts[] | {name, size}'
