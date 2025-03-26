@@ -38,13 +38,13 @@ jobs:
         if: steps.check-artifact.outputs.exists == 'true'
         uses: dawidd6/action-download-artifact@v3
         with:
+          github_token: ${{ github.token }}  # 使用官方推荐的上下文变量
           name: my-data
           path: data/
-          workflow: .github/workflows/count.yml  # 指定工作流文件路径
-          workflow_conclusion: success                   # 仅下载成功运行的Artifact
-          token: ${{ github.token }}
+          workflow: count.yml
+          workflow_conclusion: success
 
-      # 5. 初始化或验证数据
+          # 5. 初始化或验证数据
       - name: Verify data
         run: |
           if [ -f "data/record.json" ]; then
