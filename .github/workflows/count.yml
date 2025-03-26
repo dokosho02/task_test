@@ -15,12 +15,16 @@ jobs:
       - name: Prepare directory
         run: mkdir -p data
         
+      # 3. 检查Artifact是否存在（跨运行检查）
       - name: Check artifact existence
         id: check-artifact
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          artifact=$(gh api repos/${{ github.repository }}/actions/artifacts --paginate --jq '[.artifacts[] | select(.name == "my-data" and .expired == false)][0]')
+          # 使用GH CLI查询最新的有效Artifact（排除当前运行的）
+          artifact=$(gh api repos/${{ github.repository }}/actions/artifacts --paginate \
+            --jq '[.artifacts[] | select(.name == "my-data" and .expired == false and .workflow_run.id != ${{ github.run_id }})][0]')
+          
           if [ -n "$artifact" ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
             echo "✅ Artifact 'my-data' exists."
@@ -29,15 +33,17 @@ jobs:
             echo "❌ Artifact 'my-data' does not exist."
           fi
 
-      - name: Download artifact
+      # 4. 下载Artifact（跨运行下载）
+      - name: Download artifact from previous run
         if: steps.check-artifact.outputs.exists == 'true'
-        uses: actions/download-artifact@v4
+        uses: dawidd6/action-download-artifact@v3
         with:
           name: my-data
           path: data/
-          workflow: ${{ github.workflow }}  # 限定当前工作流
+          workflow: .github/workflows/count.yml  # 指定工作流文件路径
+          workflow_conclusion: success                   # 仅下载成功运行的Artifact
+          token: ${{ github.token }}
 
-      
       # 5. 初始化或验证数据
       - name: Verify data
         run: |
